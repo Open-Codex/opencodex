@@ -19,9 +19,9 @@
 ## 🛠 Tech Stack
 
 ### Frontend (User Interface)
-- **Framework**: [Next.js 14+ (App Router)](https://nextjs.org/)
+- **Framework**: [Next.js 16+ (App Router)](https://nextjs.org/)
 - **Language**: TypeScript
-- **Styling**: Vanilla CSS with CSS Modules and global variables (No Tailwind)
+- **Styling**: Tailwind with CSS Modules and global variables
 - **Icons**: [Lucide React](https://lucide.dev/)
 - **Theme**: `next-themes` (Dark/Light mode support)
 
@@ -32,7 +32,7 @@
 - **Authentication**: JWT (JSON Web Tokens)
 - **Validation**: `class-validator` & `class-transformer`
 
-*(For detailed backend documentation, see [READMEAPI.md](./READMEAPI.md))*
+*(For detailed backend documentation, see OpenCodex Repositories)*
 
 ---
 
