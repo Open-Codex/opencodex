@@ -57,6 +57,13 @@ export default function DashboardPage() {
 		readme: "",
 		avatarStyle: "geometric" as AvatarStyle,
 		avatarSeed: "",
+		location: "",
+		experienceYears: 0,
+		remoteOk: false,
+		githubUrl: "",
+		linkedinUrl: "",
+		twitterUrl: "",
+		portfolioUrl: "",
 	});
 	const [skills, setSkills] = useState<Skill[]>([]);
 	const [projects, setProjects] = useState<ProjectForm[]>([]);
@@ -83,11 +90,14 @@ export default function DashboardPage() {
 			const payload = JSON.parse(atob(tokenRaw.split(".")[1]));
 
 			const json = await fetchApi<any>("/developer?limit=50");
-			const myDev = json.data?.find(
+			const summaryDev = json.data?.find(
 				(d: { id: string }) => d.id === payload.sub,
 			);
 
-			if (myDev) {
+			if (summaryDev?.username) {
+				// Fetch full profile because the list endpoint might omit social URLs and README
+				const myDev = await fetchApi<any>(`/developer/${summaryDev.username}`);
+
 				setForm({
 					name: myDev.name ?? "",
 					username: myDev.username ?? "",
@@ -106,6 +116,13 @@ export default function DashboardPage() {
 					avatarStyle: (myDev.avatarStyle?.toLowerCase() ??
 						"geometric") as AvatarStyle,
 					avatarSeed: myDev.avatarSeed ?? myDev.username ?? "",
+					location: myDev.location ?? "",
+					experienceYears: myDev.experienceYears ?? 0,
+					remoteOk: myDev.remoteOk ?? false,
+					githubUrl: myDev.githubUrl ?? "",
+					linkedinUrl: myDev.linkedinUrl ?? "",
+					twitterUrl: myDev.twitterUrl ?? "",
+					portfolioUrl: myDev.portfolioUrl ?? "",
 				});
 				setSkills(
 					(myDev.skills ?? []).map(
@@ -158,6 +175,13 @@ export default function DashboardPage() {
 				role: form.role,
 				bio: form.bio,
 				readme: form.readme,
+				location: form.location,
+				experienceYears: Number(form.experienceYears),
+				remoteOk: form.remoteOk,
+				githubUrl: form.githubUrl || null,
+				linkedinUrl: form.linkedinUrl || null,
+				twitterUrl: form.twitterUrl || null,
+				portfolioUrl: form.portfolioUrl || null,
 			});
 
 			// Save skills
@@ -456,6 +480,110 @@ export default function DashboardPage() {
 									}
 									style={{ resize: "vertical", fontFamily: "inherit" }}
 								/>
+							</div>
+							<div
+								style={{
+									display: "grid",
+									gridTemplateColumns: "1fr 1fr 1fr",
+									gap: 16,
+								}}
+							>
+								<div style={fieldStyle}>
+									<label style={labelStyle}>Location</label>
+									<input
+										className="input"
+										placeholder="e.g. London, UK"
+										value={form.location}
+										onChange={(e) =>
+											setForm((f) => ({ ...f, location: e.target.value }))
+										}
+									/>
+								</div>
+								<div style={fieldStyle}>
+									<label style={labelStyle}>Years of Experience</label>
+									<input
+										type="number"
+										min="0"
+										className="input"
+										value={form.experienceYears}
+										onChange={(e) =>
+											setForm((f) => ({ ...f, experienceYears: parseInt(e.target.value) || 0 }))
+										}
+									/>
+								</div>
+								<div style={fieldStyle}>
+									<label style={labelStyle} />
+									<label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, cursor: "pointer", fontSize: 14 }}>
+										<input
+											type="checkbox"
+											checked={form.remoteOk}
+											onChange={(e) =>
+												setForm((f) => ({ ...f, remoteOk: e.target.checked }))
+											}
+											style={{ width: 18, height: 18, accentColor: "var(--brand-primary)" }}
+										/>
+										Open to Remote Work
+									</label>
+								</div>
+							</div>
+						</div>
+
+						{/* Links */}
+						<div className="card" style={{ padding: 24, marginBottom: 20 }}>
+							<h2 style={{ fontSize: 15, fontWeight: 700, marginBottom: 20 }}>
+								Social & Links
+							</h2>
+							<div
+								style={{
+									display: "grid",
+									gridTemplateColumns: "1fr 1fr",
+									gap: 16,
+								}}
+							>
+								<div style={fieldStyle}>
+									<label style={labelStyle}>GitHub URL</label>
+									<input
+										className="input"
+										placeholder="https://github.com/..."
+										value={form.githubUrl}
+										onChange={(e) =>
+											setForm((f) => ({ ...f, githubUrl: e.target.value }))
+										}
+									/>
+								</div>
+								<div style={fieldStyle}>
+									<label style={labelStyle}>LinkedIn URL</label>
+									<input
+										className="input"
+										placeholder="https://linkedin.com/in/..."
+										value={form.linkedinUrl}
+										onChange={(e) =>
+											setForm((f) => ({ ...f, linkedinUrl: e.target.value }))
+										}
+									/>
+								</div>
+								<div style={fieldStyle}>
+									<label style={labelStyle}>Twitter / X URL</label>
+									<input
+										className="input"
+										placeholder="https://twitter.com/..."
+										value={form.twitterUrl}
+										onChange={(e) =>
+											setForm((f) => ({ ...f, twitterUrl: e.target.value }))
+										}
+									/>
+								</div>
+								<div style={fieldStyle}>
+									<label style={labelStyle}>Personal Portfolio</label>
+									<input
+										className="input"
+										placeholder="https://..."
+										value={form.portfolioUrl}
+										onChange={(e) =>
+											setForm((f) => ({ ...f, portfolioUrl: e.target.value }))
+										}
+									/>
+								</div>
 							</div>
 						</div>
 
