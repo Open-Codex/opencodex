@@ -177,6 +177,7 @@ export default function DashboardPage() {
 				readme: form.readme,
 				location: form.location,
 				experienceYears: Number(form.experienceYears),
+				avatarStyle: form.avatarStyle.toUpperCase(),
 				remoteOk: form.remoteOk,
 				githubUrl: form.githubUrl || null,
 				linkedinUrl: form.linkedinUrl || null,
@@ -507,20 +508,36 @@ export default function DashboardPage() {
 										className="input"
 										value={form.experienceYears}
 										onChange={(e) =>
-											setForm((f) => ({ ...f, experienceYears: parseInt(e.target.value) || 0 }))
+											setForm((f) => ({
+												...f,
+												experienceYears: parseInt(e.target.value) || 0,
+											}))
 										}
 									/>
 								</div>
 								<div style={fieldStyle}>
 									<label style={labelStyle} />
-									<label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, cursor: "pointer", fontSize: 14 }}>
+									<label
+										style={{
+											display: "flex",
+											alignItems: "center",
+											gap: 8,
+											marginTop: 12,
+											cursor: "pointer",
+											fontSize: 14,
+										}}
+									>
 										<input
 											type="checkbox"
 											checked={form.remoteOk}
 											onChange={(e) =>
 												setForm((f) => ({ ...f, remoteOk: e.target.checked }))
 											}
-											style={{ width: 18, height: 18, accentColor: "var(--brand-primary)" }}
+											style={{
+												width: 18,
+												height: 18,
+												accentColor: "var(--brand-primary)",
+											}}
 										/>
 										Open to Remote Work
 									</label>
