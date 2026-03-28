@@ -66,8 +66,10 @@ export default function DashboardPage() {
 		portfolioUrl: "",
 	});
 	const [skills, setSkills] = useState<Skill[]>([]);
+	const [availableSkills, setAvailableSkills] = useState<Skill[]>([]);
 	const [projects, setProjects] = useState<ProjectForm[]>([]);
 	const [newSkill, setNewSkill] = useState("");
+	const [isSkillDropdownOpen, setIsSkillDropdownOpen] = useState(false);
 	const [readmeMode, setReadmeMode] = useState<"edit" | "preview">("edit");
 	const [saving, setSaving] = useState(false);
 	const [saved, setSaved] = useState(false);
@@ -146,6 +148,19 @@ export default function DashboardPage() {
 					productionUrl: p.productionUrl ?? "",
 				})),
 			);
+
+			// Load all available skills
+			try {
+				const allSkillsRaw = await fetchApi<any[]>("/skill");
+				setAvailableSkills(
+					allSkillsRaw.map(s => ({
+						name: s.name,
+						category: (s.category?.toLowerCase() ?? "tool") as Skill["category"]
+					}))
+				);
+			} catch (e) {
+				console.error("Failed to load global skills", e);
+			}
 		} catch (e) {
 			console.error("Failed to load profile:", e);
 		} finally {
@@ -199,13 +214,15 @@ export default function DashboardPage() {
 		}
 	};
 
-	const addSkill = () => {
-		if (!newSkill.trim()) return;
-		setSkills((s) => [
-			...s,
-			{ name: newSkill.trim(), category: "tool" as const },
-		]);
+	const addSkill = (skillToAdd: Skill) => {
+		if (skills.some(s => s.name.toLowerCase() === skillToAdd.name.toLowerCase())) {
+			setNewSkill("");
+			setIsSkillDropdownOpen(false);
+			return;
+		}
+		setSkills((s) => [...s, skillToAdd]);
 		setNewSkill("");
+		setIsSkillDropdownOpen(false);
 	};
 
 	const removeSkill = (name: string) =>
@@ -639,18 +656,63 @@ export default function DashboardPage() {
 									</div>
 								))}
 							</div>
-							<div style={{ display: "flex", gap: 8 }}>
+							<div style={{ position: "relative" }}>
 								<input
 									className="input"
-									placeholder="Add skill (e.g. Rust)"
+									placeholder="Search and add a skill..."
 									value={newSkill}
-									onChange={(e) => setNewSkill(e.target.value)}
-									onKeyDown={(e) => e.key === "Enter" && addSkill()}
-									style={{ flex: 1 }}
+									onChange={(e) => {
+										setNewSkill(e.target.value);
+										setIsSkillDropdownOpen(true);
+									}}
+									onFocus={() => setIsSkillDropdownOpen(true)}
+									onBlur={() => setTimeout(() => setIsSkillDropdownOpen(false), 200)}
+									style={{ width: "100%" }}
 								/>
-								<button onClick={addSkill} className="btn btn-ghost btn-sm">
-									<Plus size={14} /> Add
-								</button>
+								{isSkillDropdownOpen && (
+									<div
+										style={{
+											position: "absolute",
+											top: "100%",
+											left: 0,
+											right: 0,
+											marginTop: 4,
+											background: "var(--bg-elevated)",
+											border: "1px solid var(--border-base)",
+											borderRadius: "var(--radius-md)",
+											maxHeight: 220,
+											overflowY: "auto",
+											zIndex: 20,
+											boxShadow: "0 10px 25px rgba(0,0,0,0.3)",
+										}}
+									>
+										{(() => {
+											const filtered = availableSkills.filter(s => 
+												s.name.toLowerCase().includes(newSkill.toLowerCase())
+											);
+											if (filtered.length === 0) {
+												return (
+													<div style={{ padding: "12px", fontSize: 13, color: "var(--text-muted)", textAlign: "center" }}>
+														No skills found. Admins can add them.
+													</div>
+												);
+											}
+											return filtered.map((skill) => (
+												<div
+													key={skill.name}
+													onClick={() => addSkill(skill)}
+													style={{
+														padding: "10px 12px",
+														cursor: "pointer",
+														borderBottom: "1px solid var(--border-base)",
+													}}
+												>
+													<SkillBadge skill={skill} size="sm" />
+												</div>
+											));
+										})()}
+									</div>
+								)}
 							</div>
 						</div>
 
