@@ -18,6 +18,7 @@ import Link from "next/link";
 
 interface ProfilePageProps {
 	params: Promise<{ username: string }>;
+	searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 export async function generateMetadata({
@@ -67,12 +68,42 @@ function ensureAbsoluteUrl(url: string | undefined): string | undefined {
 	return `https://${url}`;
 }
 
-export default async function ProfilePage({ params }: ProfilePageProps) {
+function getRawGithubUrl(repoUrl: string | undefined): string | null {
+	if (!repoUrl || !repoUrl.includes("github.com")) return null;
+	try {
+		const urlObj = new URL(ensureAbsoluteUrl(repoUrl)!);
+		const path = urlObj.pathname; // e.g. "/facebook/react"
+		// remove trailing slash if any
+		const cleanPath = path.replace(/\/$/, "");
+		return `https://raw.githubusercontent.com${cleanPath}/main/README.md`;
+	} catch {
+		return null;
+	}
+}
+
+export default async function ProfilePage({ params, searchParams }: ProfilePageProps) {
 	const { username } = await params;
+	const sParams = await searchParams;
 	const dev = await getDeveloperByUsername(username);
 	if (!dev) notFound();
 
 	const avail = AVAILABILITY_STYLES[dev.availability];
+
+	const selectedProjectId = typeof sParams.project === "string" ? sParams.project : null;
+	const selectedProject = selectedProjectId ? dev.projects.find(p => p.id === selectedProjectId) : null;
+
+	let projectReadme = null;
+	if (selectedProject?.repoUrl) {
+		const rawUrl = getRawGithubUrl(selectedProject.repoUrl);
+		if (rawUrl) {
+			try {
+				const r = await fetch(rawUrl, { next: { revalidate: 3600 } });
+				if (r.ok) projectReadme = await r.text();
+			} catch (e) {
+				// ignore fetch error
+			}
+		}
+	}
 
 	return (
 		<div style={{ padding: "40px 24px 80px" }}>
@@ -321,126 +352,215 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 
 					{/* ── RIGHT: README + PROJECTS ── */}
 					<div style={{ minWidth: 0 }}>
-						{/* README */}
-						<div className="card" style={{ padding: 32, marginBottom: 24 }}>
-							<h2
-								style={{
-									fontSize: 16,
-									fontWeight: 700,
-									marginBottom: 20,
-									display: "flex",
-									alignItems: "center",
-									gap: 8,
-								}}
-							>
-								<span style={{ fontSize: 18 }}>📄</span> README
-							</h2>
-							<MarkdownRenderer content={dev.readme} />
-						</div>
+						{selectedProject ? (
+							<div className="card" style={{ padding: 32, marginBottom: 24 }}>
+								<div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+									<div>
+										<h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 8 }}>{selectedProject.title}</h2>
+										<p style={{ color: "var(--text-secondary)", fontSize: 14, lineHeight: 1.6 }}>{selectedProject.description}</p>
+									</div>
+									<Link href={`/p/${dev.username}`} scroll={false} className="btn btn-ghost btn-sm" style={{ flexShrink: 0 }}>
+										✕ Close
+									</Link>
+								</div>
+								
+								<div style={{ display: "flex", gap: 12, marginBottom: 28 }}>
+									{selectedProject.repoUrl && (
+										<a
+											href={ensureAbsoluteUrl(selectedProject.repoUrl)}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="btn btn-ghost btn-sm"
+											style={{ gap: 6 }}
+										>
+											<Github size={15} /> Source Code
+										</a>
+									)}
+									{selectedProject.productionUrl && (
+										<a
+											href={ensureAbsoluteUrl(selectedProject.productionUrl)}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="btn btn-primary btn-sm"
+											style={{ gap: 6 }}
+										>
+											<Globe size={15} /> Live Project
+										</a>
+									)}
+								</div>
 
-						{/* Projects */}
-						{dev.projects.length > 0 && (
-							<div className="card" style={{ padding: 32 }}>
-								<h2
+								<div className="divider" style={{ marginBottom: 28 }} />
+
+								<h3
 									style={{
-										fontSize: 16,
+										fontSize: 12,
 										fontWeight: 700,
 										marginBottom: 20,
 										display: "flex",
 										alignItems: "center",
 										gap: 8,
+										textTransform: "uppercase",
+										letterSpacing: "0.08em",
+										color: "var(--text-muted)"
 									}}
 								>
-									<GitBranch
-										size={18}
-										style={{ color: "var(--brand-primary)" }}
-									/>{" "}
-									Projects
-								</h2>
-								<div
-									style={{ display: "flex", flexDirection: "column", gap: 16 }}
-								>
-									{dev.projects.map((project) => (
-										<div
-											key={project.id}
+									Project README
+								</h3>
+								
+								{projectReadme ? (
+									<MarkdownRenderer content={projectReadme} />
+								) : (
+									<div style={{ 
+										padding: 40, 
+										textAlign: "center", 
+										background: "var(--bg-elevated)", 
+										borderRadius: "var(--radius-md)", 
+										border: "1px dashed var(--border-base)",
+										color: "var(--text-muted)" 
+									}}>
+										<p style={{ fontSize: 14 }}>No README.md found in the `main` branch of this repository, or the repository is private.</p>
+										{selectedProject.repoUrl && (
+											<a href={ensureAbsoluteUrl(selectedProject.repoUrl)} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", marginTop: 12, fontSize: 13, color: "var(--brand-primary)", textDecoration: "underline" }}>
+												View directly on GitHub
+											</a>
+										)}
+									</div>
+								)}
+							</div>
+						) : (
+							<>
+								{/* Developer README */}
+								{dev.readme && (
+									<div className="card" style={{ padding: 32, marginBottom: 24 }}>
+										<h2
 											style={{
-												padding: 20,
-												background: "var(--bg-elevated)",
-												borderRadius: "var(--radius-md)",
-												border: "1px solid var(--border-base)",
+												fontSize: 16,
+												fontWeight: 700,
+												marginBottom: 20,
+												display: "flex",
+												alignItems: "center",
+												gap: 8,
 											}}
 										>
-											<div
-												style={{
-													display: "flex",
-													justifyContent: "space-between",
-													alignItems: "flex-start",
-													marginBottom: 8,
-													gap: 12,
-												}}
-											>
-												<h3 style={{ fontSize: 15, fontWeight: 700 }}>
-													{project.title}
-												</h3>
-												<div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-													{project.repoUrl && (
-														<a
-															href={ensureAbsoluteUrl(project.repoUrl)}
-															target="_blank"
-															rel="noopener noreferrer"
-															className="btn btn-ghost btn-sm"
-															style={{ gap: 4 }}
-														>
-															<Github size={13} /> Repo
-														</a>
-													)}
-													{project.productionUrl && (
-														<a
-															href={ensureAbsoluteUrl(project.productionUrl)}
-															target="_blank"
-															rel="noopener noreferrer"
-															className="btn btn-primary btn-sm"
-															style={{ gap: 4 }}
-														>
-															<ExternalLink size={13} /> Live
-														</a>
-													)}
-												</div>
-											</div>
-											<p
-												style={{
-													fontSize: 13,
-													color: "var(--text-secondary)",
-													marginBottom: 12,
-												}}
-											>
-												{project.description}
-											</p>
-											{project.tags && project.tags.length > 0 && (
+											<span style={{ fontSize: 18 }}>📄</span> README
+										</h2>
+										<MarkdownRenderer content={dev.readme} />
+									</div>
+								)}
+
+								{/* Projects */}
+								{dev.projects.length > 0 && (
+									<div className="card" style={{ padding: 32 }}>
+										<h2
+											style={{
+												fontSize: 16,
+												fontWeight: 700,
+												marginBottom: 20,
+												display: "flex",
+												alignItems: "center",
+												gap: 8,
+											}}
+										>
+											<GitBranch
+												size={18}
+												style={{ color: "var(--brand-primary)" }}
+											/>{" "}
+											Projects
+										</h2>
+										<div
+											style={{ display: "flex", flexDirection: "column", gap: 16 }}
+										>
+											{dev.projects.map((project) => (
 												<div
-													style={{ display: "flex", flexWrap: "wrap", gap: 6 }}
+													key={project.id}
+													style={{
+														padding: 20,
+														background: "var(--bg-elevated)",
+														borderRadius: "var(--radius-md)",
+														border: "1px solid var(--border-base)",
+													}}
 												>
-													{project.tags.map((tag) => (
-														<span
-															key={tag}
-															style={{
-																fontSize: 11,
-																padding: "2px 8px",
-																background: "var(--brand-glow)",
-																color: "var(--brand-primary)",
-																borderRadius: "var(--radius-full)",
-																fontWeight: 500,
-															}}
+													<div
+														style={{
+															display: "flex",
+															justifyContent: "space-between",
+															alignItems: "flex-start",
+															marginBottom: 8,
+															gap: 12,
+														}}
+													>
+														<h3 style={{ fontSize: 15, fontWeight: 700 }}>
+															{project.title}
+														</h3>
+														<div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+															<Link
+																href={`/p/${dev.username}?project=${project.id}`}
+																scroll={false}
+																className="btn btn-ghost btn-sm"
+																style={{ gap: 4, color: "var(--brand-primary)" }}
+															>
+																Read Details & README
+															</Link>
+															{project.repoUrl && (
+																<a
+																	href={ensureAbsoluteUrl(project.repoUrl)}
+																	target="_blank"
+																	rel="noopener noreferrer"
+																	className="btn btn-ghost btn-sm"
+																	style={{ gap: 4 }}
+																>
+																	<Github size={13} /> Repo
+																</a>
+															)}
+															{project.productionUrl && (
+																<a
+																	href={ensureAbsoluteUrl(project.productionUrl)}
+																	target="_blank"
+																	rel="noopener noreferrer"
+																	className="btn btn-primary btn-sm"
+																	style={{ gap: 4 }}
+																>
+																	<ExternalLink size={13} /> Live
+																</a>
+															)}
+														</div>
+													</div>
+													<p
+														style={{
+															fontSize: 13,
+															color: "var(--text-secondary)",
+															marginBottom: 12,
+														}}
+													>
+														{project.description}
+													</p>
+													{project.tags && project.tags.length > 0 && (
+														<div
+															style={{ display: "flex", flexWrap: "wrap", gap: 6 }}
 														>
-															{tag}
-														</span>
-													))}
+															{project.tags.map((tag) => (
+																<span
+																	key={tag}
+																	style={{
+																		fontSize: 11,
+																		padding: "2px 8px",
+																		background: "var(--brand-glow)",
+																		color: "var(--brand-primary)",
+																		borderRadius: "var(--radius-full)",
+																		fontWeight: 500,
+																	}}
+																>
+																	{tag}
+																</span>
+															))}
+														</div>
+													)}
 												</div>
-											)}
+											))}
 										</div>
-									))}
-								</div>
-							</div>
+									</div>
+								)}
+							</>
 						)}
 					</div>
 				</div>
