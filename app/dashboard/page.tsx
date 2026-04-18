@@ -153,10 +153,11 @@ export default function DashboardPage() {
 			try {
 				const allSkillsRaw = await fetchApi<any[]>("/skill");
 				setAvailableSkills(
-					allSkillsRaw.map(s => ({
+					allSkillsRaw.map((s) => ({
 						name: s.name,
-						category: (s.category?.toLowerCase() ?? "tool") as Skill["category"]
-					}))
+						category: (s.category?.toLowerCase() ??
+							"tool") as Skill["category"],
+					})),
 				);
 			} catch (e) {
 				console.error("Failed to load global skills", e);
@@ -215,7 +216,9 @@ export default function DashboardPage() {
 	};
 
 	const addSkill = (skillToAdd: Skill) => {
-		if (skills.some(s => s.name.toLowerCase() === skillToAdd.name.toLowerCase())) {
+		if (
+			skills.some((s) => s.name.toLowerCase() === skillToAdd.name.toLowerCase())
+		) {
 			setNewSkill("");
 			setIsSkillDropdownOpen(false);
 			return;
@@ -431,6 +434,16 @@ export default function DashboardPage() {
 									</button>
 								))}
 							</div>
+							<br />
+							<a
+								href="https://cv.opencodex.app/"
+								target="_blank"
+								rel="noopener noreferrer"
+								className="btn btn-primary"
+								style={{ display: "flex", alignItems: "center", gap: 8 }}
+							>
+								CV Builder
+							</a>
 						</div>
 					</div>
 
@@ -666,7 +679,9 @@ export default function DashboardPage() {
 										setIsSkillDropdownOpen(true);
 									}}
 									onFocus={() => setIsSkillDropdownOpen(true)}
-									onBlur={() => setTimeout(() => setIsSkillDropdownOpen(false), 200)}
+									onBlur={() =>
+										setTimeout(() => setIsSkillDropdownOpen(false), 200)
+									}
 									style={{ width: "100%" }}
 								/>
 								{isSkillDropdownOpen && (
@@ -687,12 +702,19 @@ export default function DashboardPage() {
 										}}
 									>
 										{(() => {
-											const filtered = availableSkills.filter(s => 
-												s.name.toLowerCase().includes(newSkill.toLowerCase())
+											const filtered = availableSkills.filter((s) =>
+												s.name.toLowerCase().includes(newSkill.toLowerCase()),
 											);
 											if (filtered.length === 0) {
 												return (
-													<div style={{ padding: "12px", fontSize: 13, color: "var(--text-muted)", textAlign: "center" }}>
+													<div
+														style={{
+															padding: "12px",
+															fontSize: 13,
+															color: "var(--text-muted)",
+															textAlign: "center",
+														}}
+													>
 														No skills found. Admins can add them.
 													</div>
 												);
