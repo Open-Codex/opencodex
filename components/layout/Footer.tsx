@@ -10,7 +10,8 @@ const FOOTER_LINKS = {
 	Company: [
 		{ label: "About", href: "/about" },
 		{ label: "Contact", href: "/contact" },
-		{ label: "FAQ", href: "/faq" },
+    { label: "FAQ", href: "/faq" },
+		{ label: "Blog", href: "http://blog.opencodex.app/" },
 	],
 	Legal: [
 		{ label: "Privacy Policy", href: "/privacy" },
