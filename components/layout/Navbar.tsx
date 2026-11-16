@@ -10,7 +10,8 @@ import { useAuth } from "@/components/providers/AuthContext";
 const NAV_LINKS = [
 	{ href: "/", label: "Home" },
 	{ href: "/explore", label: "Explore" },
-	{ href: "/about", label: "About" },
+  { href: "/about", label: "About" },
+  { href: "http://blog.opencodex.app/", label: "Blog" },
 ];
 
 function ThemeToggle() {
